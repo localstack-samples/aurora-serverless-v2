@@ -18,6 +18,7 @@ npm install
 ```shell
 npm install -g aws-cdk
 npm install -g aws-cdk-local
+npm install aws-cdk-lib constructs
 ```
 3. Bootstrap the CDK project for LocalStack
 ```shell
