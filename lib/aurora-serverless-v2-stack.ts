@@ -18,7 +18,7 @@ const ec2 = require("aws-cdk-lib/aws-ec2");
 const ssm = require("aws-cdk-lib/aws-ssm");
 const secrets = require("aws-cdk-lib/aws-secretsmanager");
 
-import {Aspects, CfnOutput, Duration, SecretValue} from 'aws-cdk-lib';
+import { Aspects, CfnOutput, Duration, SecretValue, aws_iam as iam } from 'aws-cdk-lib';
 import { CfnDBCluster } from 'aws-cdk-lib/aws-rds';
 
 export class AuroraServerlessV2Stack extends cdk.Stack {
@@ -75,26 +75,14 @@ export class AuroraServerlessV2Stack extends cdk.Stack {
         subnetType: ec2.SubnetType.ISOLATED,
       }),
       securityGroups: [dbSecurityGroup],
-      scaling: { autoPause: Duration.seconds(0) },
+      scaling: {
+        autoPause: Duration.minutes(0), // Enable auto-pause after 5 minutes
+        minCapacity: 2, // Minimum ACUs
+        maxCapacity: 16, // Maximum ACUs
+      },
       credentials: dbsecret,
     })
 
-    // RDS DB hostname is localhost on LocalStack. Change to host.docker.internal so Lambdas can reach it.
-    let hostname = dbCluster.clusterEndpoint.hostname;
-    if (hostname == 'localhost') {
-      hostname = 'host.docker.internal';
-    }
-
-    const dbCredentialsSecret = new secrets.Secret(this, 'LambdaDBSecret', {
-
-      secretObjectValue: {
-        host: SecretValue.unsafePlainText('host.docker.internal'),
-        port: SecretValue.unsafePlainText(dbCluster.clusterEndpoint.port.toString()),
-        username: SecretValue.unsafePlainText('serverless'),
-        password: databaseCredentialsSecret.secretValueFromJson('password'),
-        dbname: SecretValue.unsafePlainText('serverless'),
-      },
-    })
 
     // create a lambda function
     // you can read more about lambda functions here: https://www.codewithyou.com/blog/writing-typescript-lambda-in-aws-cdk
@@ -108,13 +96,13 @@ export class AuroraServerlessV2Stack extends cdk.Stack {
         minify: false
       },
       environment: {
-        databaseSecretArn: dbCredentialsSecret.secretArn // pass the secret arn to the lambda function
+        DATABASE_SECRET_ARN: databaseCredentialsSecret.secretArn, // pass the secret arn to the lambda function
       }
     });
 
     // allow the lambda function to access credentials stored in AWS Secrets Manager
     // the lambda function will be able to access the credentials for the default database in the db cluster
-    dbCredentialsSecret.grantRead(fn);
+    databaseCredentialsSecret.grantRead(fn);
 
     // create a lambda rest api
     // you can read more about lambda rest apis here: https://www.codewithyou.com/blog/creating-a-lambda-rest-api-in-aws-cdk
