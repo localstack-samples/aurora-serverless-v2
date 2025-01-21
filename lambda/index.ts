@@ -16,8 +16,6 @@ export async function main(event: APIGatewayEvent): Promise<APIGatewayProxyResul
       new GetSecretValueCommand({ SecretId: process.env.DATABASE_SECRET_ARN })
     );
 
-    console.log('Raw Secret:', secret);
-
     // Validate secret content
     const secretString = secret.SecretString;
     if (!secretString) {
@@ -25,7 +23,6 @@ export async function main(event: APIGatewayEvent): Promise<APIGatewayProxyResul
     }
 
     const secretValues = JSON.parse(secretString);
-    console.log('Parsed Secret Values:', secretValues);
 
     const requiredFields = ['host', 'port', 'username', 'password', 'dbname'];
     for (const field of requiredFields) {
