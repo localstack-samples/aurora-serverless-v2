@@ -1,50 +1,60 @@
-import {
-  GetSecretValueCommand,
-  SecretsManagerClient
-} from '@aws-sdk/client-secrets-manager';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { APIGatewayEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { Client } from 'pg';
 
-export async function main(
-  event: APIGatewayEvent
-): Promise<APIGatewayProxyResult> {
-  // get the secret from secrets manager.
-  const client = new SecretsManagerClient({});
-  const secret = await client.send(
-    new GetSecretValueCommand({
-      SecretId: process.env.databaseSecretArn
-    })
-  );
-  const secretValues = JSON.parse(secret.SecretString ?? '{}');
-
-  console.log('secretValues : ', secretValues);
-
-  // connect to the database
-  const db = new Client({
-    // host: secretValues.host ?? 'host.docker.internal', // host is the endpoint of the db cluster
-    host: 'host.docker.internal', // host is the endpoint of the db cluster
-    port: secretValues.port,
-    user: secretValues.username, // username is the same as the secret name
-    password: secretValues.password, // this is the password for the default database in the db cluster
-    database: secretValues.dbname ?? 'postgres' // use the default database if no database is specified
-  });
-
-  await db.connect();
-
-  // execute a query
-  const res = await db.query('SELECT NOW()');
-
-  // disconnect from the database
-  await db.end();
-
-  return {
-    body: JSON.stringify({
-      message: `DB Response: ${res.rows[0].now}`
-    }),
-    statusCode: 200,
-    isBase64Encoded: false,
-    headers: {
-      'Content-Type': 'application/json'
+export async function main(event: APIGatewayEvent): Promise<APIGatewayProxyResult> {
+  const secretsClient = new SecretsManagerClient({});
+  
+  try {
+    // Validate environment variable
+    if (!process.env.DATABASE_SECRET_ARN) {
+      throw new Error('Environment variable "databaseSecretArn" is not defined.');
     }
-  };
+
+    // Fetch secret
+    const secret = await secretsClient.send(
+      new GetSecretValueCommand({ SecretId: process.env.DATABASE_SECRET_ARN })
+    );
+
+    // Validate secret content
+    const secretString = secret.SecretString;
+    if (!secretString) {
+      throw new Error('SecretString is null or undefined.');
+    }
+
+    const secretValues = JSON.parse(secretString);
+
+    const requiredFields = ['host', 'port', 'username', 'password', 'dbname'];
+    for (const field of requiredFields) {
+      if (!secretValues[field]) {
+        throw new Error(`Missing required field "${field}" in secret.`);
+      }
+    }
+
+    // Connect to the database
+    const db = new Client({
+      host: secretValues.host,
+      port: parseInt(secretValues.port, 10),
+      user: secretValues.username,
+      password: secretValues.password,
+      database: secretValues.dbname,
+    });
+
+    await db.connect();
+    const result = await db.query('SELECT NOW()');
+    await db.end();
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: `DB Response: ${result.rows[0].now}` }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  } catch (error) {
+    console.error('Error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Internal Server Error' }),
+      headers: { 'Content-Type': 'application/json' },
+    };
+  }
 }
