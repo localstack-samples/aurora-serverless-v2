@@ -1,6 +1,23 @@
 # Welcome to your CDK TypeScript project
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
+## Prerequisites
+
+- A valid [LocalStack for AWS license](https://localstack.cloud/pricing). Your license provides a [`LOCALSTACK_AUTH_TOKEN`](https://docs.localstack.cloud/getting-started/auth-token/) to activate LocalStack.
+- [`localstack` CLI](https://docs.localstack.cloud/getting-started/installation/#localstack-cli)
+- [Node.js](https://nodejs.org/en/download/) with NVM (Node Version Manager)
+- [AWS CDK](https://docs.localstack.cloud/user-guide/integrations/aws-cdk/) with the [`cdklocal`](https://www.npmjs.com/package/aws-cdk-local) wrapper
+
+## Start LocalStack
+
+Start LocalStack with the `LOCALSTACK_AUTH_TOKEN` pre-configured:
+
+```shell
+export LOCALSTACK_AUTH_TOKEN=<your-auth-token>
+make start
+make ready
+```
+
 # Setup
 1. Install Node Version Manager (NVM)
 https://github.com/nvm-sh/nvm#installing-and-updating
