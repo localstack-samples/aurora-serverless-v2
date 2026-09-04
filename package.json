@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "cdklocal": "cdklocal"
+    "cdklocal": "lstk cdk"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.108",
@@ -17,8 +17,7 @@
     "@types/node": "10.17.27",
     "@types/pg": "^8.6.5",
     "@types/prettier": "2.6.0",
-    "aws-cdk": "2.47.0",
-    "aws-cdk-local": "^2.18.0",
+    "aws-cdk": "2.1133.0",
     "aws-lambda": "^1.0.7",
     "jest": "^27.5.1",
     "ts-jest": "^27.1.4",

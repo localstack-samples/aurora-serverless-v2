@@ -3,10 +3,10 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 ## Prerequisites
 
-- A valid [LocalStack for AWS license](https://localstack.cloud/pricing). Your license provides a [`LOCALSTACK_AUTH_TOKEN`](https://docs.localstack.cloud/getting-started/auth-token/) to activate LocalStack.
-- [`localstack` CLI](https://docs.localstack.cloud/getting-started/installation/#localstack-cli)
+- A valid [LocalStack for AWS license](https://localstack.cloud/pricing). Your license provides a [`LOCALSTACK_AUTH_TOKEN`](https://docs.localstack.cloud/aws/getting-started/auth-token/) to activate LocalStack.
+- [`lstk` CLI](https://docs.localstack.cloud/aws/developer-tools/running-localstack/lstk/)
 - [Node.js](https://nodejs.org/en/download/) with NVM (Node Version Manager)
-- [AWS CDK](https://docs.localstack.cloud/user-guide/integrations/aws-cdk/) with the [`cdklocal`](https://www.npmjs.com/package/aws-cdk-local) wrapper
+- [AWS CDK](https://docs.localstack.cloud/user-guide/integrations/aws-cdk/) with the `lstk cdk` proxy
 
 ## Start LocalStack
 
@@ -15,7 +15,6 @@ Start LocalStack with the `LOCALSTACK_AUTH_TOKEN` pre-configured:
 ```shell
 export LOCALSTACK_AUTH_TOKEN=<your-auth-token>
 make start
-make ready
 ```
 
 # Setup
@@ -31,19 +30,19 @@ nvm install 18
 ```shell
 npm install
 ```
-2. Install `aws-cdk` and `aws-cdk-local` CLI
+2. Install `aws-cdk` and `lstk` CLI
 ```shell
 npm install -g aws-cdk
-npm install -g aws-cdk-local
+npm install -g @localstack/lstk
 npm install aws-cdk-lib constructs
 ```
 3. Bootstrap the CDK project for LocalStack
 ```shell
-cdklocal bootstrap aws://000000000000/us-east-1
+lstk cdk bootstrap aws://000000000000/us-east-1
 ```
 4. Deploy CDK project to LocalStack
 ```shell
-cdklocal deploy
+lstk cdk deploy
 ```
 
 ## Useful commands
