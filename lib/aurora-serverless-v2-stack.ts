@@ -4,22 +4,15 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import * as rds from 'aws-cdk-lib/aws-rds';
+import * as secrets from 'aws-cdk-lib/aws-secretsmanager';
 import {
-  InstanceType,
   SecurityGroup,
   SubnetType,
   Vpc,
   Peer,
   Port
 } from 'aws-cdk-lib/aws-ec2';
-const cognito = require("aws-cdk-lib/aws-cognito");
-const s3 = require("aws-cdk-lib/aws-s3");
-const ec2 = require("aws-cdk-lib/aws-ec2");
-const ssm = require("aws-cdk-lib/aws-ssm");
-const secrets = require("aws-cdk-lib/aws-secretsmanager");
-
-import { Aspects, CfnOutput, Duration, SecretValue, aws_iam as iam } from 'aws-cdk-lib';
-import { CfnDBCluster } from 'aws-cdk-lib/aws-rds';
+import { CfnOutput } from 'aws-cdk-lib';
 
 export class AuroraServerlessV2Stack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -27,8 +20,8 @@ export class AuroraServerlessV2Stack extends cdk.Stack {
 
     // create a vpc
     const vpc = new Vpc(this, 'VPC', {
-      cidr: '10.0.0.0/16',
-      subnetConfiguration: [{ name: 'egress', subnetType: SubnetType.PUBLIC },{ name: 'db', subnetType: SubnetType.PRIVATE_ISOLATED }], // only one subnet is needed
+      ipAddresses: cdk.aws_ec2.IpAddresses.cidr('10.0.0.0/16'),
+      subnetConfiguration: [{ name: 'egress', subnetType: SubnetType.PUBLIC },{ name: 'db', subnetType: SubnetType.PRIVATE_ISOLATED }],
       natGateways: 0 // disable NAT gateways
     });
 
@@ -62,37 +55,33 @@ export class AuroraServerlessV2Stack extends cdk.Stack {
       }
     );
 
-    const dbsecret = rds.Credentials.fromSecret(databaseCredentialsSecret);
-
-    const dbCluster = new rds.ServerlessCluster(this, "serverless-db", {
+    // Aurora Serverless v2: a cluster with a db.serverless writer instance.
+    // The cluster attaches to the secret, which adds host, port and dbname to it.
+    new rds.DatabaseCluster(this, "serverless-db", {
       engine: rds.DatabaseClusterEngine.auroraPostgres({
-        version: rds.AuroraPostgresEngineVersion.VER_14_4,
+        version: rds.AuroraPostgresEngineVersion.VER_16_4,
       }),
-          // engine: rds.DatabaseClusterEngine.AURORA_POSTGRESQL,
+      writer: rds.ClusterInstance.serverlessV2('writer'),
+      serverlessV2MinCapacity: 0.5, // Minimum ACUs
+      serverlessV2MaxCapacity: 16, // Maximum ACUs
       defaultDatabaseName: "serverless",
       vpc: vpc,
-      vpcSubnets: vpc.selectSubnets({
-        subnetType: ec2.SubnetType.ISOLATED,
-      }),
+      vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
       securityGroups: [dbSecurityGroup],
-      scaling: {
-        autoPause: Duration.minutes(0), // Enable auto-pause after 5 minutes
-        minCapacity: 2, // Minimum ACUs
-        maxCapacity: 16, // Maximum ACUs
-      },
-      credentials: dbsecret,
-    })
-
+      credentials: rds.Credentials.fromSecret(databaseCredentialsSecret),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // create a lambda function
     // you can read more about lambda functions here: https://www.codewithyou.com/blog/writing-typescript-lambda-in-aws-cdk
     const fn = new NodejsFunction(this, 'Lambda', {
       entry: './lambda/index.ts',
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_22_X,
       handler: 'main',
       architecture: Architecture.ARM_64,
+      timeout: cdk.Duration.seconds(30),
       bundling: {
-        externalModules: ['aws-sdk', 'pg-native'],
+        externalModules: ['@aws-sdk/*', 'pg-native'],
         minify: false
       },
       environment: {

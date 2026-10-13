@@ -1,5 +1,6 @@
-# Welcome to your CDK TypeScript project
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+# Aurora Serverless v2 with Lambda and API Gateway
+
+A CDK TypeScript app that deploys an Aurora PostgreSQL Serverless v2 cluster, a Lambda function that reads the database credentials from Secrets Manager and runs `SELECT NOW()`, and a REST API in front of the function.
 
 ## Prerequisites
 
@@ -20,9 +21,9 @@ make start
 # Setup
 1. Install Node Version Manager (NVM)
 https://github.com/nvm-sh/nvm#installing-and-updating
-2. Select Node version 18
+2. Select Node version 22
 ```shell
-nvm install 18
+nvm install 22
 ```
 
 # Build and Deploy
@@ -32,9 +33,7 @@ npm install
 ```
 2. Install `aws-cdk` and `lstk` CLI
 ```shell
-npm install -g aws-cdk
-npm install -g @localstack/lstk
-npm install aws-cdk-lib constructs
+npm install -g aws-cdk @localstack/lstk
 ```
 3. Bootstrap the CDK project for LocalStack
 ```shell
@@ -45,11 +44,23 @@ lstk cdk bootstrap aws://000000000000/us-east-1
 lstk cdk deploy
 ```
 
+Or run steps 1, 3 and 4 with `make deploy`.
+
+# Test
+
+```shell
+make test
+```
+
+`test.sh` checks the credentials secret has the connection fields the cluster attaches to it, then calls the API and expects a `200` with `{"message": "DB Response: <timestamp>"}` from the database.
+
+On an x86_64 machine, start LocalStack with `LOCALSTACK_LAMBDA_IGNORE_ARCHITECTURE=1` so the arm64 function runs without emulation.
+
 ## Useful commands
 
 * `npm run build`   compile typescript to js
 * `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
+* `npm run test`    run the jest unit tests against the synthesized template
 * `cdk deploy`      deploy this stack to your default AWS account/region
 * `cdk diff`        compare deployed stack with current state
 * `cdk synth`       emits the synthesized CloudFormation template

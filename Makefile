@@ -24,4 +24,7 @@ deploy:		## Deploy infrastructure using CDK
 	lstk cdk bootstrap aws://000000000000/us-east-1
 	lstk cdk deploy --require-approval never
 
-.PHONY: usage install start stop logs deploy
+test:		## Call the API and check it queried the database
+	./test.sh
+
+.PHONY: usage install start stop logs deploy test
